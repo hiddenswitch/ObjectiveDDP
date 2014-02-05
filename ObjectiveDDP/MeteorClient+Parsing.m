@@ -45,7 +45,8 @@ static int LOGON_RETRY_MAX = 5;
     if([msg isEqualToString:@"result"]
        && message[@"error"]
        && [message[@"error"][@"error"] integerValue] == 403
-       && self.authState != AuthStateLoggedOut) {
+       && self.authState != AuthStateLoggedOut
+       && self.authState != AuthStateNoAuth) {
         [self _setAuthStatetoLoggedOut];
         if (++_retryAttempts < LOGON_RETRY_MAX && self.connected) {
             [self logonWithUserParameters:_logonParams username:_userName password:_password responseCallback:_logonMethodCallback];
