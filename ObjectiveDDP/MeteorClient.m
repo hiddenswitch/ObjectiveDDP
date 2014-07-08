@@ -186,11 +186,13 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     [self _handleRemovedMessage:message msg:msg];
     [self _handleChangedMessage:message msg:msg];
     
-    if (msg && [msg isEqualToString:@"ping"]) {
+    if (!msg) return;
+    
+    if ([msg isEqualToString:@"ping"]) {
         [self.ddp pong:messageId];
     }
     
-    if (msg && [msg isEqualToString:@"connected"]) {
+    else if ([msg isEqualToString:@"connected"]) {
         self.connected = YES;
         [[NSNotificationCenter defaultCenter] postNotificationName:@"connected" object:nil];
         if (_sessionToken) {
@@ -201,7 +203,7 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         [self _makeMeteorDataSubscriptions];
     }
     
-    if (msg && [msg isEqualToString:@"ready"]) {
+    else if ([msg isEqualToString:@"ready"]) {
         NSArray *subs = message[@"subs"];
         for(NSString *readySubscription in subs) {
             for(NSString *subscriptionName in _subscriptions) {
@@ -213,6 +215,23 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
                 }
             }
         }
+    }
+    
+    else if ([msg isEqualToString:@"updated"]) {
+        NSArray *methods = message[@"methods"];
+        for(NSString *updateMethod in methods) {
+            for(NSString *methodId in _methodIds) {
+                if([methodId isEqualToString:updateMethod]) {
+                    NSString *notificationName = [NSString stringWithFormat:@"%@_update", methodId];
+                    [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self];
+                    break;
+                }
+            }
+        }
+    }
+    
+    else if ([msg isEqualToString:@"nosub"]) {
+        
     }
 }
 
