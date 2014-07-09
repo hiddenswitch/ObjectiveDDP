@@ -178,16 +178,18 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
 
 - (void)didReceiveMessage:(NSDictionary *)message {
     NSString *msg = [message objectForKey:@"msg"];
+    
     if (!msg) return;
+    
     NSString *messageId = message[@"id"];
     
     [self _handleMethodResultMessageWithMessageId:messageId message:message msg:msg];
     [self _handleAddedMessage:message msg:msg];
+    [self _handleAddedBeforeMessage:message msg:msg];
+    [self _handleMovedBeforeMessage:message msg:msg];
     [self _handleRemovedMessage:message msg:msg];
     [self _handleChangedMessage:message msg:msg];
-    
-    if (!msg) return;
-    
+
     if ([msg isEqualToString:@"ping"]) {
         [self.ddp pong:messageId];
     }
@@ -230,9 +232,23 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         }
     }
     
+    else if ([msg isEqualToString:@"addedBefore"]) {
+        
+    }
+    
+    else if ([msg isEqualToString:@"movedBefore"]) {
+        
+    }
+    
     else if ([msg isEqualToString:@"nosub"]) {
         
     }
+    
+    else if ([msg isEqualToString:@"error"]) {
+        
+    }
+    
+    NSLog(@"msg is %@", msg);
 }
 
 - (void)didOpen {
