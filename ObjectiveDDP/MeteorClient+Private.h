@@ -10,16 +10,16 @@
     NSString *_password;
     NSDictionary *_logonParams;
     NSMutableDictionary *_subscriptionsParameters;
-    NSString *_sessionToken;
     BOOL _disconnecting;
 }
 
 // These are public and should be KVO compliant so use accessor instead of direct ivar access
 @property (nonatomic, copy, readwrite) NSString *userId;
+@property (nonatomic, copy, readwrite) NSString *sessionToken;
 @property (nonatomic, assign, readwrite) BOOL connected;
-@property (nonatomic, strong, readwrite) NSMutableDictionary *collections;
 @property (nonatomic, assign, readwrite) BOOL websocketReady;
 @property (nonatomic, assign, readwrite) AuthState authState;
+@property (nonatomic, strong, readwrite) NSMutableDictionary *collections;
 
 //xxx: temporary methods to corral state vars
 - (void)_setAuthStateToLoggingIn;

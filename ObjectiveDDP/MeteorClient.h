@@ -31,11 +31,13 @@ typedef void(^MeteorClientMethodCallback)(NSDictionary *response, NSError *error
 @property (nonatomic, strong) ObjectiveDDP *ddp;
 @property (nonatomic, weak) id<DDPAuthDelegate> authDelegate;
 @property (nonatomic, strong, readonly) NSMutableDictionary *collections;
+@property (nonatomic, copy, readonly) NSString *sessionToken;
 @property (nonatomic, copy, readonly) NSString *userId;
 @property (nonatomic, assign, readonly) BOOL websocketReady;
 @property (nonatomic, assign, readonly) BOOL connected;
 @property (nonatomic, assign, readonly) AuthState authState;
 @property (nonatomic, copy, readonly) NSString *ddpVersion;
+@property (nonatomic, copy, readonly) NSString *session;
 @property (nonatomic, strong ,readonly) NSArray *supportedVersions;
 
 // In flux; use "pre1" for meteor versions up to v0.8.0.1
@@ -47,6 +49,12 @@ typedef void(^MeteorClientMethodCallback)(NSDictionary *response, NSError *error
 - (NSString *)callMethodName:(NSString *)methodName parameters:(NSArray *)parameters responseCallback:(MeteorClientMethodCallback)asyncCallback;
 - (void)logonWithUsername:(NSString *)username password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback;
 - (void)logonWithUserParameters:(NSDictionary *)userParameters username:(NSString *)username password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback;
+
+- (void)signupWithUsernameAndEmail:(NSString *)username email:(NSString *)email password:(NSString *)password fullname:(NSString *)fullname responseCallback:(MeteorClientMethodCallback)responseCallback;
+- (void)signupWithUsername:(NSString *)username password:(NSString *)password fullname:(NSString *)fullname responseCallback:(MeteorClientMethodCallback)responseCallback;
+- (void)signupWithEmail:(NSString *)email password:(NSString *)password fullname:(NSString *)fullname responseCallback:(MeteorClientMethodCallback)responseCallback;
+- (void)signupWithUserParameters:userParameters responseCallback:(MeteorClientMethodCallback) responseCallback;
+
 - (void)addSubscription:(NSString *)subscriptionName;
 - (void)addSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters;
 - (void)removeSubscription:(NSString *)subscriptionName;
