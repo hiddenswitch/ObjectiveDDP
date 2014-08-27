@@ -190,7 +190,6 @@
     }
 }
 
-/* TODO - check uf this is right - it doesn't seem to rest the collection array with the new change */
 - (NSDictionary *)_parseObjectAndUpdateCollection:(NSDictionary *)message {
     NSPredicate *pred = [NSPredicate predicateWithFormat:@"(_id like %@)", message[@"id"]];
     NSMutableArray *collection = self.collections[message[@"collection"]];
@@ -198,6 +197,9 @@
     NSMutableDictionary *object = filteredArray[0];
     for (id key in message[@"fields"]) {
         object[key] = message[@"fields"][key];
+    }
+    for (id key in message[@"cleared"]) {
+        [object removeObjectForKey:key];
     }
     return object;
 }
