@@ -10,4 +10,5 @@ Pod::Spec.new do |s|
   s.source_files   = 'ObjectiveDDP/*.{h,m,c}', 'ObjectiveDDP/openssl/*.{h}', 'ObjectiveDDP/srp/*.{h,m,c}'
   s.requires_arc   = true
   s.dependency 'SocketRocket', '0.3.1-beta2'
+  s.dependency 'M13OrderedDictionary'
 end
