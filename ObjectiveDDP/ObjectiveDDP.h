@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <SocketRocket/SRWebSocket.h>
+#import <M13OrderedDictionary/M13OrderedDictionary.h>
 
 @protocol ObjectiveDDPDelegate;
 
@@ -9,6 +10,7 @@
 @property (nonatomic, assign) id <ObjectiveDDPDelegate> delegate;
 @property (nonatomic, strong) SRWebSocket *webSocket;
 
+- (void)ping:(NSString *)id;
 - (void)pong:(NSString *)id;
 
 - (id)initWithURLString:(NSString *)urlString delegate:(id <ObjectiveDDPDelegate>)delegate;

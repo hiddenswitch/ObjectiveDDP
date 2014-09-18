@@ -95,19 +95,28 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
 }
 
 - (BOOL)okToSend {
-    if (!self.connected || self.authState == AuthStateLoggedOut) {
+    if (!self.connected) {
         return NO;
     }
     return YES;
 }
 
 - (void)logonWithUsername:(NSString *)username password:(NSString *)password {
-    [self logonWithUserParameters:_logonParams username:username password:password responseCallback:nil];
+    [self logonWithUserParameters:[self _buildUserParametersWithUsername:username password:password] responseCallback:nil];
 }
 
 - (void)logonWithUsername:(NSString *)username password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback {
-    [self logonWithUserParameters:_logonParams username:username password:password responseCallback:responseCallback];
+    [self logonWithUserParameters:[self _buildUserParametersWithUsername:username password:password] responseCallback:responseCallback];
 }
+
+- (void)logonWithEmail:(NSString *)email password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback {
+    [self logonWithUserParameters:[self _buildUserParametersWithEmail:email password:password] responseCallback:responseCallback];
+}
+
+- (void)logonWithUsernameOrEmail:(NSString *)usernameOrEmail password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback {
+    [self logonWithUserParameters:[self _buildUserParametersWithUsernameOrEmail:usernameOrEmail password:password] responseCallback:responseCallback];
+}
+
 
 - (void)logonWithUserParameters:(NSDictionary *)userParameters username:(NSString *)username password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback {
     if (self.authState == AuthStateLoggingIn) {
@@ -144,6 +153,37 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     _logonMethodCallback = responseCallback;
 }
 
+- (void)logonWithUserParameters:(NSDictionary *)userParameters responseCallback:(MeteorClientMethodCallback)responseCallback {
+    if (self.authState == AuthStateLoggingIn) {
+        NSString *errorDesc = [NSString stringWithFormat:@"You must wait for the current logon request to finish before sending another."];
+        NSError *logonError = [NSError errorWithDomain:MeteorClientTransportErrorDomain code:MeteorClientErrorLogonRejected userInfo:@{NSLocalizedDescriptionKey: errorDesc}];
+        if (responseCallback) {
+            responseCallback(nil, logonError);
+        }
+        return;
+    }
+    [self _setAuthStateToLoggingIn];
+    
+    if ([self _rejectIfNotConnected:responseCallback]) {
+        return;
+    }
+    
+    NSMutableDictionary *mutableUserParameters = [userParameters mutableCopy];
+    
+    [self callMethodName:@"login" parameters:@[mutableUserParameters] responseCallback:^(NSDictionary *response, NSError *error) {
+        if (error) {
+            [self _setAuthStatetoLoggedOut];
+        } else {
+            [self _setAuthStateToLoggedIn];
+            self.userId = response[@"result"][@"id"];
+        }
+        responseCallback(response, error);
+    }];
+    
+    _logonParams = userParameters;
+    _logonMethodCallback = responseCallback;
+}
+
 - (void)signupWithUsernameAndEmail:(NSString *)username email:(NSString *)email password:(NSString *)password fullname:(NSString *)fullname responseCallback:(MeteorClientMethodCallback)responseCallback {
     [self signupWithUserParameters:[self _buildUserParametersSignup:username email:email password:password fullname:fullname] responseCallback:responseCallback];
 }
@@ -157,7 +197,7 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
 }
 
 - (void)signupWithUserParameters:userParameters responseCallback:(MeteorClientMethodCallback) responseCallback {
-	if (self.authState == AuthStateLoggingIn) {
+    if (self.authState == AuthStateLoggingIn) {
         NSString *errorDesc = [NSString stringWithFormat:@"You must wait for the current signup request to finish before sending another."];
         NSError *logonError = [NSError errorWithDomain:MeteorClientTransportErrorDomain code:MeteorClientErrorLogonRejected userInfo:@{NSLocalizedDescriptionKey: errorDesc}];
         if (responseCallback) {
@@ -181,6 +221,7 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         responseCallback(response, error);
     }];
 }
+
 
 // move this to string category
 - (NSString *)sha256:(NSString *)clear {
@@ -210,6 +251,13 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
 - (void)disconnect {
     _disconnecting = YES;
     [self.ddp disconnectWebSocket];
+}
+
+- (void)ping {
+    if (!self.connected) {
+        return;
+    }
+    [self.ddp ping:[BSONIdGenerator generate]];
 }
 
 #pragma mark <ObjectiveDDPDelegate>

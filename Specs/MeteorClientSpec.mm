@@ -11,7 +11,7 @@ describe(@"MeteorClient", ^{
     __block MeteorClient *meteorClient;
     __block ObjectiveDDP *ddp;
     __block NSString *bestDDPVersion;
-
+    
     beforeEach(^{
         bestDDPVersion = @"best_version_ever";
         ddp = nice_fake_for([ObjectiveDDP class]);
@@ -21,7 +21,7 @@ describe(@"MeteorClient", ^{
         meteorClient.authDelegate = nice_fake_for(@protocol(DDPAuthDelegate));
         spy_on(ddp);
     });
-
+    
     it(@"is correctly initialized", ^{
         meteorClient.websocketReady should_not be_truthy;
         meteorClient.connected should_not be_truthy;
@@ -38,14 +38,64 @@ describe(@"MeteorClient", ^{
         
         it(@"tells ddp to disconnect", ^{
             ddp should have_received(@selector(disconnectWebSocket));
-        });        
+        });
     });
     
-    describe(@"#logonWithUserParameters:username:password", ^{
+    //    describe(@"#signupWithEmail:password:fullname:responseCallback:", ^{
+    //
+    //        context(@"when connected", ^{
+    //            beforeEach(^{
+    //                meteorClient.connected = YES;
+    //                [meteorClient signupWithEmail:@"mrt@ateam.com" password:@"password" fullname:@"mr bean" responseCallback:nil];
+    //            });
+    //
+    //            it(@"sends signup message correctly", ^{
+    //                NSArray *sentMessages = [(id<CedarDouble>)ddp sent_messages];
+    //                NSInvocation *invocation = sentMessages[1];
+    //                NSArray *sentParameters;
+    //                [invocation getArgument:&sentParameters atIndex:4];
+    //                ddp should have_received(@selector(methodWithId:method:parameters:)).with(@"1").and_with(@"createUser").and_with(@[@{ @"username": @"",
+    //                @"email": @"mrt@ateam.com", @"password": @{ @"digest": [meteorClient sha256:@"password"], @"algorithm": @"sha-256" },
+    //                @"profile": @{ @"fullname": @"mr bean",@"signupToken": @"" } }]);
+    //            });
+    //
+    //        });
+    //
+    //        afterEach(^{
+    //            [meteorClient logout];
+    //            meteorClient.connected = NO;
+    //
+    //        });
+    //    });
+    
+    //    describe(@"#signupWithUsername:password:fullname:responseCallback:", ^{
+    //
+    //        context(@"with username", ^{
+    //            beforeEach(^{
+    //                meteorClient.connected = YES;
+    //                [meteorClient signupWithUsername:@"fox" password:@"fool" fullname:@"mr fox" responseCallback:nil];
+    //            });
+    //
+    //
+    //            it(@"sends signup message correctly", ^{
+    //                NSArray *sentMessages = [(id<CedarDouble>)ddp sent_messages];
+    //                NSInvocation *invocation = sentMessages[1];
+    //                NSArray *sentParameters;
+    //                [invocation getArgument:&sentParameters atIndex:4];
+    ////                NSLog(@"%@", [sentParameters debugDescription]);
+    //                ddp should have_received(@selector(methodWithId:method:parameters:)).with(@"1").and_with(@"createUser").and_with(@[@{ @"username": @"fox",
+    //                @"email": @"", @"password":@{ @"digest": [meteorClient sha256:@"fool"], @"algorithm": @"sha-256" },
+    //                @"profile": @{ @"fullname": @"mr fox",@"signupToken": @"" }}]);
+    //            });
+    //
+    //        });
+    //    });
+    
+    describe(@"#logonWithUserParameters:", ^{
         context(@"when connected", ^{
             beforeEach(^{
                 meteorClient.connected = YES;
-                [meteorClient logonWithUserParameters:@{@"user": @"mrt"} username:@"mrt@ateam.com" password:@"fool" responseCallback:nil];
+                [meteorClient logonWithUserParameters:@{ @"user": @{ @"email": @"mrt@ateam.com" }, @"password": @{ @"digest": [meteorClient sha256:@"fool"], @"algorithm": @"sha-256" } } responseCallback:nil];
             });
             
             it(@"sends logon message correctly", ^{
@@ -53,7 +103,7 @@ describe(@"MeteorClient", ^{
                 NSInvocation *invocation = sentMessages[1];
                 NSArray *sentParameters;
                 [invocation getArgument:&sentParameters atIndex:4];
-                ddp should have_received(@selector(methodWithId:method:parameters:)).with(@"1").and_with(@"login").and_with(@[@{@"user": @"mrt"}]);
+                ddp should have_received(@selector(methodWithId:method:parameters:)).with(@"1").and_with(@"login").and_with(@[@{ @"user": @{ @"email": @"mrt@ateam.com" }, @"password": @{ @"digest": [meteorClient sha256:@"fool"], @"algorithm": @"sha-256" } }]);
             });
         });
     });
@@ -96,7 +146,7 @@ describe(@"MeteorClient", ^{
                         successResponse should be_nil;
                     });
                 });
-              
+                
                 context(@"when the logon request succeeds", ^{
                     beforeEach(^{
                         NSDictionary *message = @{@"id": @"blarg"};
@@ -110,7 +160,7 @@ describe(@"MeteorClient", ^{
                         meteorClient.userId should equal(@"blarg");
                     });
                 });
-            
+                
                 context(@"when the logon request fails", ^{
                     beforeEach(^{
                         NSDictionary *loginErrorMessage = @{@"error": @403, @"message": @"you suck", @"errorType": @"screwed"};
@@ -155,80 +205,80 @@ describe(@"MeteorClient", ^{
                 meteorClient.connected = YES;
                 [meteorClient addSubscription:@"a fancy subscription"];
             });
-
+            
             it(@"should call ddp subscribe method", ^{
                 ddp should have_received("subscribeWith:name:parameters:").with(anything)
                 .and_with(@"a fancy subscription")
                 .and_with(nil);
             });
         });
-
+        
         context(@"when not connected", ^{
             beforeEach(^{
                 meteorClient.connected = NO;
                 [meteorClient addSubscription:@"a fancy subscription"];
             });
-
+            
             it(@"should not call ddp subscribe method", ^{
                 ddp should_not have_received("subscribeWith:name:parameters:");
             });
         });
     });
-
+    
     describe(@"#removeSubscription:", ^{
         context(@"when not connected", ^{
             beforeEach(^{
                 meteorClient.connected = YES;
                 [meteorClient->_subscriptions setObject:@"id1"
-                                               forKey:@"fancySubscriptionName"];
+                                                 forKey:@"fancySubscriptionName"];
                 [meteorClient->_subscriptions count] should equal(1);
                 [meteorClient removeSubscription:@"fancySubscriptionName"];
             });
-
+            
             it(@"removes subscription correctly", ^{
                 ddp should have_received(@selector(unsubscribeWith:));
                 [meteorClient->_subscriptions count] should equal(0);
             });
         });
-
+        
         context(@"when not connected", ^{
             beforeEach(^{
                 meteorClient.connected = NO;
                 [meteorClient->_subscriptions setObject:@"id1"
-                                               forKey:@"fancySubscriptionName"];
+                                                 forKey:@"fancySubscriptionName"];
                 [meteorClient->_subscriptions count] should equal(1);
                 [meteorClient removeSubscription:@"fancySubscriptionName"];
             });
-
+            
             it(@"does not remove subscription", ^{
                 ddp should_not have_received(@selector(unsubscribeWith:));
                 [meteorClient->_subscriptions count] should equal(1);
             });
         });
     });
-
+    
     describe(@"#didOpen", ^{
         beforeEach(^{
             spy_on([NSNotificationCenter defaultCenter]);
-            NSArray *array = [[[NSArray alloc] init] autorelease];
+            M13MutableOrderedDictionary *array = [[[M13MutableOrderedDictionary alloc] init] autorelease];
             meteorClient.collections = [NSMutableDictionary dictionaryWithDictionary:@{@"col1": array}];
             [meteorClient.collections count] should equal(1);
             [meteorClient didOpen];
         });
-
+        
         it(@"sets the web socket state to ready", ^{
             meteorClient.websocketReady should be_truthy;
             [meteorClient.collections count] should equal(0);
             ddp should have_received(@selector(connectWithSession:version:support:));
         });
-
+        
         it(@"sends a notification", ^{
             [NSNotificationCenter defaultCenter] should have_received(@selector(postNotificationName:object:))
             .with(MeteorClientDidConnectNotification)
             .and_with(meteorClient);
         });
     });
-
+    
     describe(@"#didReceiveConnectionClose", ^{
         beforeEach(^{
             meteorClient.websocketReady = YES;
@@ -309,7 +359,7 @@ describe(@"MeteorClient", ^{
             });
         });
     });
-
+    
     describe(@"#didReceiveMessage", ^{
         __block NSString *key;
         
@@ -330,14 +380,14 @@ describe(@"MeteorClient", ^{
                     [meteorClient didReceiveMessage:@{@"msg": @"result",
                                                       @"result": @"rule",
                                                       @"id": key
-                                                     }];
+                                                      }];
                 });
                 
                 it(@"has the correct returned response", ^{
                     returnedResponse[@"result"] should equal(@"rule");
                 });
             });
-        
+            
             context(@"when the response fails", ^{
                 beforeEach(^{
                     key = [meteorClient callMethodName:@"robots" parameters:nil responseCallback:^(NSDictionary *response, NSError *error) {
@@ -354,11 +404,11 @@ describe(@"MeteorClient", ^{
                     NSError *expectedError = [NSError errorWithDomain:errorDic[@"errorType"] code:[errorDic[@"error"]integerValue] userInfo:userInfo];
                     
                     returnedError should equal(expectedError);
-
+                    
                 });
             });
         });
-                    
+        
         context(@"when subscription is ready", ^{
             beforeEach(^{
                 [meteorClient->_subscriptions setObject:@"subid" forKey:@"subscriptionName"];
@@ -369,85 +419,171 @@ describe(@"MeteorClient", ^{
             it(@"processes the message correctly", ^{
                 SEL postSel = @selector(postNotificationName:object:);
                 [NSNotificationCenter defaultCenter] should have_received(postSel)
-                    .with(@"subscriptionName_ready")
-                    .and_with(meteorClient);
+                .with(@"subscriptionName_ready")
+                .and_with(meteorClient);
             });
         });
-
+        
+        
         context(@"when called with an 'added' message", ^{
             beforeEach(^{
                 NSDictionary *addedMessage = @{
-                    @"msg": @"added",
-                    @"id": @"id1",
-                    @"collection": @"phrases",
-                    @"fields": @{@"text": @"this is ridiculous"}
-                };
-
+                                               @"msg": @"added",
+                                               @"id": @"id1",
+                                               @"collection": @"phrases",
+                                               @"fields": @{@"text": @"this is ridiculous"}
+                                               };
+                
                 [meteorClient didReceiveMessage:addedMessage];
             });
-
+            
             it(@"processes the message correctly", ^{
                 [meteorClient.collections[@"phrases"] count] should equal(1);
                 NSDictionary *phrase = meteorClient.collections[@"phrases"][0];
                 phrase[@"text"] should equal(@"this is ridiculous");
                 SEL postSel = @selector(postNotificationName:object:userInfo:);
                 [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"added")
-                                                                                  .and_with(meteorClient)
-                                                                                  .and_with(phrase);
+                .and_with(meteorClient)
+                .and_with(phrase);
                 [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"phrases_added")
-                                                                                  .and_with(meteorClient)
-                                                                                  .and_with(phrase);
+                .and_with(meteorClient)
+                .and_with(phrase);
             });
-
+            
             context(@"when called with a changed message", ^{
                 beforeEach(^{
                     NSDictionary *changedMessage = @{
-                        @"msg": @"changed",
-                        @"id": @"id1",
-                        @"collection": @"phrases",
-                        @"fields": @{@"text": @"this is really ridiculous"}
-                    };
-
+                                                     @"msg": @"changed",
+                                                     @"id": @"id1",
+                                                     @"collection": @"phrases",
+                                                     @"fields": @{@"text": @"this is really ridiculous"}
+                                                     };
+                    
                     [meteorClient didReceiveMessage:changedMessage];
                 });
-
+                
                 it(@"processes the message correctly", ^{
                     [meteorClient.collections[@"phrases"] count] should equal(1);
                     NSDictionary *phrase = meteorClient.collections[@"phrases"][0];
                     phrase[@"text"] should equal(@"this is really ridiculous");
                     SEL postSel = @selector(postNotificationName:object:userInfo:);
                     [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"changed")
-                                                                                       .and_with(meteorClient)
-                                                                                       .and_with(phrase);
+                    .and_with(meteorClient)
+                    .and_with(phrase);
                     [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"phrases_changed")
-                                                                                       .and_with(meteorClient)
-                                                                                       .and_with(phrase);
+                    .and_with(meteorClient)
+                    .and_with(phrase);
                 });
             });
-
+            
+            
+            
             context(@"when called with a removed message", ^{
                 beforeEach(^{
                     NSDictionary *removedMessage = @{
-                        @"msg": @"removed",
-                        @"id": @"id1",
-                        @"collection": @"phrases",
-                    };
-
+                                                     @"msg": @"removed",
+                                                     @"id": @"id1",
+                                                     @"collection": @"phrases",
+                                                     };
+                    
                     [meteorClient didReceiveMessage:removedMessage];
                 });
-
+                
                 it(@"processes the message correctly", ^{
                     [meteorClient.collections[@"phrases"] count] should equal(0);
                     SEL postSel = @selector(postNotificationName:object:);
                     SEL postObjSel = @selector(postNotificationName:object:userInfo:);
                     [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"removed")
-                                                                                      .and_with(meteorClient);
+                    .and_with(meteorClient);
                     [NSNotificationCenter defaultCenter] should have_received(postObjSel).with(@"phrases_removed")
-                                                                                         .and_with(meteorClient)
-                                                                                         .and_with(@{@"_id": @"id1"});
+                    .and_with(meteorClient)
+                    .and_with(@{@"_id": @"id1"});
                 });
             });
         });
+        
+        context(@"when called with an 'addedBefore' message", ^{
+            beforeEach(^{
+                NSDictionary *addedMessage = @{
+                                               @"msg": @"added",
+                                               @"id": @"id0",
+                                               @"collection": @"phrases",
+                                               @"fields": @{@"text": @"this is ridiculous"}
+                                               };
+                
+                [meteorClient didReceiveMessage:addedMessage];
+                
+                NSDictionary *addedBeforeMessage = @{
+                                                     @"msg": @"addedBefore",
+                                                     @"id": @"id1",
+                                                     @"collection": @"phrases",
+                                                     @"fields": @{@"text": @"this is before ridiculous"},
+                                                     @"before":@"id0"
+                                                     };
+                
+                [meteorClient didReceiveMessage:addedBeforeMessage];
+            });
+            
+            it(@"processes the message correctly", ^{
+                [meteorClient.collections[@"phrases"] count] should equal(2);
+                //check the order
+                NSDictionary *phrase = meteorClient.collections[@"phrases"][0];
+                phrase[@"text"] should equal(@"this is before ridiculous");
+                SEL postSel = @selector(postNotificationName:object:userInfo:);
+                [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"addedBefore")
+                .and_with(meteorClient)
+                .and_with(phrase);
+                [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"phrases_addedBefore")
+                .and_with(meteorClient)
+                .and_with(phrase);
+            });
+        });
+        
+        context(@"when called with an 'movedBefore' message", ^{
+            beforeEach(^{
+                NSDictionary *addedMessage = @{
+                                               @"msg": @"added",
+                                               @"id": @"id0",
+                                               @"collection": @"phrases",
+                                               @"fields": @{@"text": @"this is ridiculous"}
+                                               };
+                
+                [meteorClient didReceiveMessage:addedMessage];
+                
+                NSDictionary *addedNextMessage = @{
+                                                   @"msg": @"added",
+                                                   @"id": @"id1",
+                                                   @"collection": @"phrases",
+                                                   @"fields": @{@"text": @"this is before ridiculous"}
+                                                   };
+                
+                [meteorClient didReceiveMessage:addedNextMessage];
+                
+                NSDictionary *movedBeforeMessage = @{
+                                                     @"msg": @"movedBefore",
+                                                     @"id": @"id1",
+                                                     @"collection": @"phrases",
+                                                     @"before":@"id0"
+                                                     };
+                
+                [meteorClient didReceiveMessage:movedBeforeMessage];
+            });
+            
+            it(@"processes the message correctly", ^{
+                [meteorClient.collections[@"phrases"] count] should equal(2);
+                //check the order
+                NSDictionary *phrase = meteorClient.collections[@"phrases"][0];
+                phrase[@"text"] should equal(@"this is before ridiculous");
+                SEL postSel = @selector(postNotificationName:object:userInfo:);
+                [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"movedBefore")
+                .and_with(meteorClient)
+                .and_with(phrase);
+                [NSNotificationCenter defaultCenter] should have_received(postSel).with(@"phrases_movedBefore")
+                .and_with(meteorClient)
+                .and_with(phrase);
+            });
+        });
+        
     });
 });
 

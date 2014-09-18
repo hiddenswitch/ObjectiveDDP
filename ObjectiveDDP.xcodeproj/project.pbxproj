@@ -161,7 +161,6 @@
 		4000D638170E880400296229 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				2C1F0C9084EA4B2DBD349673 /* libPods.a */,
 				401AEB7D170E9EC7008B38EA /* libicucore.dylib */,
 				4079F9DD170EB31D00194B4A /* CoreGraphics.framework */,
 				4079F9E8170EB31E00194B4A /* Cedar-iOS.framework */,
@@ -499,7 +498,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2459525257B94E909C3CA1DF /* Pods.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/Specs/Frameworks\"/**",
@@ -529,7 +529,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2459525257B94E909C3CA1DF /* Pods.xcconfig */;
 			buildSettings = {
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/Specs/Frameworks\"/**",

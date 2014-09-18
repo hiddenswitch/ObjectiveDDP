@@ -27,6 +27,16 @@
     [self _closeConnection];
 }
 
+//ping (client -> server):
+//  id: string (the id for the ping)
+- (void)ping:(NSString *)id {
+    NSDictionary *fields = @{@"msg": @"ping"};
+    if (id)
+        fields = @{@"msg": @"ping", @"id": id};
+    NSString *json = [self _buildJSONWithFields:fields parameters:nil];
+    [self.webSocket send:json];
+}
+
 //pong (client -> server):
 //  id: string (the id send with the ping)
 - (void)pong:(NSString *)id {
@@ -44,10 +54,6 @@
 //  support: array of strings (protocol versions supported by the client, in order of preference)
 - (void)connectWithSession:(NSString *)session version:(NSString *)version support:(NSArray *)support {
     NSDictionary *fields = @{@"msg": @"connect", @"version": version, @"support": support};
-    if (session) {
-        fields = @{@"msg": @"connect", @"session": session, @"version": version, @"support": support};
-    }
-
     NSString *json = [self _buildJSONWithFields:fields parameters:nil];
     [self.webSocket send:json];
 }
@@ -80,7 +86,7 @@
     [self.webSocket send:json];
 }
 
-#pragma mark - Internal 
+#pragma mark - Internal
 
 - (NSString *)_buildJSONWithFields:(NSDictionary *)fields parameters:(NSArray *)parameters {
     NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithDictionary:fields];
