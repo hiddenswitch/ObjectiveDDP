@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.summary        = 'Facilitates communication between iOS clients and meteor.js servers'
   s.homepage       = 'https://github.com/hiddenswitch/ObjectiveDDP.git'
   s.author         = 'Jesse Bounds'
-  s.source         = { :git => 'https://github.com/hiddenswitch/ObjectiveDDP.git', :tag => 'v0.1.8' }
+  s.source         = { :git => 'https://github.com/hiddenswitch/ObjectiveDDP.git' }
   s.source_files   = 'ObjectiveDDP/*.{h,m,c}'
   s.requires_arc   = true
   s.dependency 'SocketRocket', '0.3.1-beta2'
