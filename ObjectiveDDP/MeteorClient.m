@@ -4,9 +4,13 @@
 #import "MeteorClient+Private.h"
 #import "BSONIdGenerator.h"
 
+NSString * const MeteorClientConnectionReadyNotification = @"bounsj.objectiveddp.ready";
 NSString * const MeteorClientDidConnectNotification = @"boundsj.objectiveddp.connected";
 NSString * const MeteorClientDidDisconnectNotification = @"boundsj.objectiveddp.disconnected";
 NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.transport";
+
+double const MeteorClientRetryIncreaseBy = 1;
+double const MeteorClientMaxRetryIncrease = 6;
 
 @interface MeteorClient ()
 
@@ -28,10 +32,13 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         _subscriptions = [NSMutableDictionary dictionary];
         _subscriptionsParameters = [NSMutableDictionary dictionary];
         _methodIds = [NSMutableSet set];
+        _updatedMethodIds = [NSMutableSet set];
         _responseCallbacks = [NSMutableDictionary dictionary];
         _ddpVersion = ddpVersion;
-        if ([ddpVersion isEqualToString:@"pre2"]) {
-            _supportedVersions = @[@"pre2", @"pre1"];
+        _maxRetryIncrement = MeteorClientMaxRetryIncrease;
+        _tries = MeteorClientRetryIncreaseBy;
+        if ([ddpVersion isEqualToString:@"1"]) {
+            _supportedVersions = @[@"1", @"pre2"];
         } else {
             _supportedVersions = @[@"pre2", @"pre1"];
         }
@@ -101,6 +108,14 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     return YES;
 }
 
+- (void) logonWithSessionToken:(NSString *) sessionToken {
+    self.sessionToken = sessionToken;
+    [self.ddp methodWithId:[BSONIdGenerator generate]
+                    method:@"login"
+                parameters:@[@{@"resume": self.sessionToken}]];
+    
+}
+
 - (void)logonWithUsername:(NSString *)username password:(NSString *)password {
     [self logonWithUserParameters:[self _buildUserParametersWithUsername:username password:password] responseCallback:nil];
 }
@@ -115,42 +130,6 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
 
 - (void)logonWithUsernameOrEmail:(NSString *)usernameOrEmail password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback {
     [self logonWithUserParameters:[self _buildUserParametersWithUsernameOrEmail:usernameOrEmail password:password] responseCallback:responseCallback];
-}
-
-
-- (void)logonWithUserParameters:(NSDictionary *)userParameters username:(NSString *)username password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback {
-    if (self.authState == AuthStateLoggingIn) {
-        NSString *errorDesc = [NSString stringWithFormat:@"You must wait for the current logon request to finish before sending another."];
-        NSError *logonError = [NSError errorWithDomain:MeteorClientTransportErrorDomain code:MeteorClientErrorLogonRejected userInfo:@{NSLocalizedDescriptionKey: errorDesc}];
-        if (responseCallback) {
-            responseCallback(nil, logonError);
-        }
-        return;
-    }
-    [self _setAuthStateToLoggingIn];
-    
-    if ([self _rejectIfNotConnected:responseCallback]) {
-        return;
-    }
-    
-    if (!userParameters) {
-        userParameters = @{@"user": @{@"email": username}, @"password": @{ @"digest": [self sha256:password], @"algorithm": @"sha-256" } };
-    }
-    
-    NSMutableDictionary *mutableUserParameters = [userParameters mutableCopy];
-    
-    [self callMethodName:@"login" parameters:@[mutableUserParameters] responseCallback:^(NSDictionary *response, NSError *error) {
-        if (error) {
-            [self _setAuthStatetoLoggedOut];
-        } else {
-            [self _setAuthStateToLoggedIn];
-            self.userId = response[@"result"][@"id"];
-        }
-        responseCallback(response, error);
-    }];
-    
-    _logonParams = userParameters;
-    _logonMethodCallback = responseCallback;
 }
 
 - (void)logonWithUserParameters:(NSDictionary *)userParameters responseCallback:(MeteorClientMethodCallback)responseCallback {
@@ -174,8 +153,7 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         if (error) {
             [self _setAuthStatetoLoggedOut];
         } else {
-            [self _setAuthStateToLoggedIn];
-            self.userId = response[@"result"][@"id"];
+            [self _setAuthStateToLoggedIn:response[@"result"][@"id"] withToken:response[@"result"][@"token"]];
         }
         responseCallback(response, error);
     }];
@@ -197,7 +175,7 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
 }
 
 - (void)signupWithUserParameters:userParameters responseCallback:(MeteorClientMethodCallback) responseCallback {
-    if (self.authState == AuthStateLoggingIn) {
+	if (self.authState == AuthStateLoggingIn) {
         NSString *errorDesc = [NSString stringWithFormat:@"You must wait for the current signup request to finish before sending another."];
         NSError *logonError = [NSError errorWithDomain:MeteorClientTransportErrorDomain code:MeteorClientErrorLogonRejected userInfo:@{NSLocalizedDescriptionKey: errorDesc}];
         if (responseCallback) {
@@ -207,16 +185,14 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     }
     [self _setAuthStateToLoggingIn];
     
-    
-    //            self.sessionToken = response[@"token"];
+	
     NSMutableDictionary *mutableUserParameters = [userParameters mutableCopy];
     
     [self callMethodName:@"createUser" parameters:@[mutableUserParameters] responseCallback:^(NSDictionary *response, NSError *error) {
         if (error) {
             [self _setAuthStatetoLoggedOut];
         } else {
-            [self _setAuthStateToLoggedIn];
-            self.userId = response[@"result"][@"id"];
+            [self _setAuthStateToLoggedIn:response[@"result"][@"id"] withToken:response[@"result"][@"token"]];
         }
         responseCallback(response, error);
     }];
@@ -253,6 +229,17 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     [self.ddp disconnectWebSocket];
 }
 
+- (void)reconnect {
+    
+    NSLog(@"reconnecting");
+
+    
+    if (self.ddp.webSocket.readyState == SR_OPEN) {
+        return;
+    }
+    [self.ddp connectWebSocket];
+}
+
 - (void)ping {
     if (!self.connected) {
         return;
@@ -280,19 +267,16 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         [self.ddp pong:messageId];
     }
     
-    else if ([msg isEqualToString:@"connected"]) {
+    if ([msg isEqualToString:@"connected"]) {
         self.connected = YES;
-        _session = message[@"session"];
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"connected" object:nil];
-        if (_sessionToken) {
-            [self.ddp methodWithId:[BSONIdGenerator generate]
-                            method:@"login"
-                        parameters:@[@{@"resume": _sessionToken}]];
+        [[NSNotificationCenter defaultCenter] postNotificationName:MeteorClientConnectionReadyNotification object:self];
+        if (self.sessionToken) {
+            [self logonWithSessionToken:self.sessionToken];
         }
         [self _makeMeteorDataSubscriptions];
     }
     
-    else if ([msg isEqualToString:@"ready"]) {
+    if ([msg isEqualToString:@"ready"]) {
         NSArray *subs = message[@"subs"];
         for(NSString *readySubscription in subs) {
             for(NSString *subscriptionName in _subscriptions) {
@@ -309,10 +293,11 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     else if ([msg isEqualToString:@"updated"]) {
         NSArray *methods = message[@"methods"];
         for(NSString *updateMethod in methods) {
-            for(NSString *methodId in _methodIds) {
+            for(NSString *methodId in _updatedMethodIds) {
                 if([methodId isEqualToString:updateMethod]) {
                     NSString *notificationName = [NSString stringWithFormat:@"%@_update", methodId];
                     [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self];
+                    [_updatedMethodIds removeObject:methodId];
                     break;
                 }
             }
@@ -338,8 +323,9 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
 
 - (void)didOpen {
     self.websocketReady = YES;
+    [self _resetBackoff];
     [self resetCollections];
-    [self.ddp connectWithSession:self.session version:self.ddpVersion support:self.supportedVersions];
+    [self.ddp connectWithSession:nil version:self.ddpVersion support:self.supportedVersions];
     [[NSNotificationCenter defaultCenter] postNotificationName:MeteorClientDidConnectNotification object:self];
 }
 
@@ -357,11 +343,16 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     NSString *methodId = [BSONIdGenerator generate];
     if(notify == YES) {
         [_methodIds addObject:methodId];
+        [_updatedMethodIds addObject:methodId];
     }
     [self.ddp methodWithId:methodId
                     method:methodName
                 parameters:parameters];
     return methodId;
+}
+
+- (void)_resetBackoff {
+    _tries = 1;
 }
 
 - (void)_handleConnectionError {
@@ -373,7 +364,13 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         _disconnecting = NO;
         return;
     }
-    [self performSelector:@selector(_reconnect) withObject:self afterDelay:5.0];
+//
+    double timeInterval = 5.0 * _tries;
+    
+    if (_tries != _maxRetryIncrement) {
+        _tries++;
+    }
+    [self performSelector:@selector(reconnect) withObject:self afterDelay:timeInterval];
 }
 
 - (void)_invalidateUnresolvedMethods {
@@ -382,14 +379,8 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
         callback(nil, [NSError errorWithDomain:MeteorClientTransportErrorDomain code:MeteorClientErrorDisconnectedBeforeCallbackComplete userInfo:@{NSLocalizedDescriptionKey: @"You were disconnected"}]);
     }
     [_methodIds removeAllObjects];
+    [_updatedMethodIds removeAllObjects];
     [_responseCallbacks removeAllObjects];
-}
-
-- (void)_reconnect {
-    if (self.ddp.webSocket.readyState == SR_OPEN) {
-        return;
-    }
-    [self.ddp connectWebSocket];
 }
 
 - (void)_makeMeteorDataSubscriptions {
@@ -417,13 +408,16 @@ NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.trans
     self.authState = AuthStateLoggingIn;
 }
 
-- (void)_setAuthStateToLoggedIn {
+- (void)_setAuthStateToLoggedIn:(NSString *)userId withToken:()token {
     self.authState = AuthStateLoggedIn;
+    self.userId = userId;
+    self.sessionToken = token;
 }
 
 - (void)_setAuthStatetoLoggedOut {
     _logonParams = nil;
     self.authState = AuthStateLoggedOut;
+    self.userId = nil;
 }
 
 - (NSDictionary *)_buildUserParametersSignup:(NSString *)username email:(NSString *)email password:(NSString *)password fullname:(NSString *) fullname

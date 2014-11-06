@@ -2,6 +2,7 @@
 
 @protocol DDPAuthDelegate;
 
+extern NSString * const MeteorClientConnectionReadyNotification;
 extern NSString * const MeteorClientDidConnectNotification;
 extern NSString * const MeteorClientDidDisconnectNotification;
 
@@ -31,21 +32,22 @@ typedef void(^MeteorClientMethodCallback)(NSDictionary *response, NSError *error
 @property (nonatomic, strong) ObjectiveDDP *ddp;
 @property (nonatomic, weak) id<DDPAuthDelegate> authDelegate;
 @property (nonatomic, strong, readonly) NSMutableDictionary *collections;
-@property (nonatomic, copy, readonly) NSString *sessionToken;
 @property (nonatomic, copy, readonly) NSString *userId;
+@property (nonatomic, copy, readonly) NSString *sessionToken;
 @property (nonatomic, assign, readonly) BOOL websocketReady;
 @property (nonatomic, assign, readonly) BOOL connected;
 @property (nonatomic, assign, readonly) AuthState authState;
 @property (nonatomic, copy, readonly) NSString *ddpVersion;
-@property (nonatomic, copy, readonly) NSString *session;
 @property (nonatomic, strong ,readonly) NSArray *supportedVersions;
 
 // In flux; use "pre1" for meteor versions up to v0.8.0.1
 //          use "pre2" for meteor versions v0.8.1.1 and above (until they change it again)
+//          use "1" for meteor versions v0.8.9 and above
 - (id)initWithDDPVersion:(NSString *)ddpVersion;
 
 #pragma mark - Methods
 
+- (void) logonWithSessionToken:(NSString *) sessionToken;
 - (NSString *)callMethodName:(NSString *)methodName parameters:(NSArray *)parameters responseCallback:(MeteorClientMethodCallback)asyncCallback;
 - (void)logonWithUsername:(NSString *)username password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback;
 - (void)logonWithEmail:(NSString *)email password:(NSString *)password responseCallback:(MeteorClientMethodCallback)responseCallback;
@@ -61,8 +63,8 @@ typedef void(^MeteorClientMethodCallback)(NSDictionary *response, NSError *error
 - (void)removeSubscription:(NSString *)subscriptionName;
 - (void)logout;
 - (void)disconnect;
+- (void)reconnect;
 - (void)ping;
-- (NSString *)sha256:(NSString *)clear;
 
 // Deprecated methods
 

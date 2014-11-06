@@ -4,6 +4,7 @@
 @public // for tests. This header is not exported anyway.
     NSMutableDictionary *_subscriptions;
     NSMutableSet *_methodIds;
+    NSMutableSet *_updatedMethodIds;
     NSMutableDictionary *_responseCallbacks;
     MeteorClientMethodCallback _logonMethodCallback;
     NSString *_userName;
@@ -11,6 +12,8 @@
     NSDictionary *_logonParams;
     NSMutableDictionary *_subscriptionsParameters;
     BOOL _disconnecting;
+    double _tries;
+    double _maxRetryIncrement;
 }
 
 // These are public and should be KVO compliant so use accessor instead of direct ivar access
@@ -23,8 +26,11 @@
 
 //xxx: temporary methods to corral state vars
 - (void)_setAuthStateToLoggingIn;
-- (void)_setAuthStateToLoggedIn;
+- (void)_setAuthStateToLoggedIn:(NSString *)userId withToken:()token;
 - (void)_setAuthStatetoLoggedOut;
+- (NSDictionary *)_buildUserParametersWithUsername:(NSString *)username password:(NSString *)password;
+- (NSDictionary *)_buildUserParametersWithEmail:(NSString *)email password:(NSString *)password;
+- (NSDictionary *)_buildUserParametersWithUsernameOrEmail:(NSString *)usernameOrEmail password:(NSString *)password;
 
 @end
 
