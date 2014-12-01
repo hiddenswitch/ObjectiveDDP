@@ -170,7 +170,9 @@
 
 - (void)_parseRemoved:(NSDictionary *)message {
     M13MutableOrderedDictionary *collection = self.collections[message[@"collection"]];
-    [collection removeObjectForKey:message[@"id"]];
+    if ([collection objectForKey:message[@"id"]]) {
+        [collection removeObjectForKey:message[@"id"]];
+    }
 }
 
 
