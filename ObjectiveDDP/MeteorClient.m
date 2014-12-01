@@ -74,20 +74,22 @@ double const MeteorClientMaxRetryIncrease = 6;
     return methodId;
 }
 
-- (void)addSubscription:(NSString *)subscriptionName {
-    [self addSubscription:subscriptionName withParameters:nil];
+- (NSString*)addSubscription:(NSString *)subscriptionName {
+    return [self addSubscription:subscriptionName withParameters:nil];
 }
 
-- (void)addSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters {
+- (NSString*)addSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters {
     NSString *uid = [BSONIdGenerator generate];
     [_subscriptions setObject:uid forKey:subscriptionName];
     if (parameters) {
         [_subscriptionsParameters setObject:parameters forKey:subscriptionName];
     }
     if (![self okToSend]) {
-        return;
+        return uid;
     }
     [self.ddp subscribeWith:uid name:subscriptionName parameters:parameters];
+    
+    return uid;
 }
 
 - (void)removeSubscription:(NSString *)subscriptionName {
@@ -100,6 +102,12 @@ double const MeteorClientMaxRetryIncrease = 6;
         [_subscriptions removeObjectForKey:subscriptionName];
     }
 }
+
+- (void)removeSubscription:(NSString *)subscriptionName _id:(NSString*)_id {
+    [self.ddp unsubscribeWith:_id];
+    [_subscriptions removeObjectForKey:subscriptionName];
+}
+
 
 - (BOOL)okToSend {
     if (!self.connected) {
