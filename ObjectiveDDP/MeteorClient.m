@@ -105,7 +105,8 @@ double const MeteorClientMaxRetryIncrease = 6;
 
 - (void)removeSubscription:(NSString *)subscriptionName _id:(NSString*)_id {
     [self.ddp unsubscribeWith:_id];
-    [_subscriptions removeObjectForKey:subscriptionName];
+    
+//   [_subscriptions removeObjectForKey:subscriptionName];
 }
 
 
@@ -149,11 +150,12 @@ double const MeteorClientMaxRetryIncrease = 6;
         }
         return;
     }
-    [self _setAuthStateToLoggingIn];
     
     if ([self _rejectIfNotConnected:responseCallback]) {
         return;
     }
+    
+    [self _setAuthStateToLoggingIn];
     
     NSMutableDictionary *mutableUserParameters = [userParameters mutableCopy];
     
@@ -197,8 +199,7 @@ double const MeteorClientMaxRetryIncrease = 6;
     }
     [self _setAuthStateToLoggingIn];
     
-	
-    NSMutableDictionary *mutableUserParameters = [userParameters mutableCopy];
+	NSMutableDictionary *mutableUserParameters = [userParameters mutableCopy];
     
     [self callMethodName:@"createUser" parameters:@[mutableUserParameters] responseCallback:^(NSDictionary *response, NSError *error) {
         if (error) {
@@ -296,6 +297,9 @@ double const MeteorClientMaxRetryIncrease = 6;
                 if([curSubId isEqualToString:readySubscription]) {
                     NSString *notificationName = [NSString stringWithFormat:@"%@_ready", subscriptionName];
                     [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self];
+                    
+                    NSLog(@"ready %@", notificationName);
+
                     break;
                 }
             }
