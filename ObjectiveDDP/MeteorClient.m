@@ -80,9 +80,15 @@ double const MeteorClientMaxRetryIncrease = 6;
 
 - (NSString*)addSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters {
     NSString *uid = [BSONIdGenerator generate];
-    [_subscriptions setObject:uid forKey:subscriptionName];
+    
+    NSString *key = subscriptionName;
     if (parameters) {
-        [_subscriptionsParameters setObject:parameters forKey:subscriptionName];
+        key = [NSString stringWithFormat:@"%@_%@", subscriptionName, [parameters componentsJoinedByString:@","]];
+    }
+    
+    [_subscriptions setObject:uid forKey:key];
+    if (parameters) {
+        [_subscriptionsParameters setObject:parameters forKey:key];
     }
     if (![self okToSend]) {
         return uid;
@@ -96,19 +102,39 @@ double const MeteorClientMaxRetryIncrease = 6;
     if (![self okToSend]) {
         return;
     }
-    NSString *uid = [_subscriptions objectForKey:subscriptionName];
-    if (uid) {
-        [self.ddp unsubscribeWith:uid];
-        [_subscriptions removeObjectForKey:subscriptionName];
+    
+    for (NSString *key in [_subscriptions allKeys]) {
+        if ([key hasPrefix:[NSString stringWithFormat:@"%@_", subscriptionName]] || [key isEqualToString:subscriptionName]) {
+            [self removeSubscriptionForKey:key];
+        }
     }
 }
 
-- (void)removeSubscription:(NSString *)subscriptionName _id:(NSString*)_id {
-    [self.ddp unsubscribeWith:_id];
+- (void)removeSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters {
     
-//   [_subscriptions removeObjectForKey:subscriptionName];
+    NSString *key = [NSString stringWithFormat:@"%@_%@", subscriptionName, [parameters componentsJoinedByString:@","]];
+    [self removeSubscriptionForKey:key];
 }
 
+- (void)removeSubscriptionForKey:(NSString *)key
+{
+    NSString *uid = [_subscriptions objectForKey:key];
+    if (uid) {
+        [self.ddp unsubscribeWith:uid];
+        [_subscriptions removeObjectForKey:key];
+    }
+}
+
+- (NSString *)subscriptionNameForKey:(NSString *)key
+{
+    // Subscription names are the prefixed part of the subscriptionName if there is one
+    NSString *subscriptionName = key;
+    if ([subscriptionName containsString:@"_"]) {
+        subscriptionName = [[subscriptionName componentsSeparatedByString:@"_"] firstObject];
+    }
+    
+    return subscriptionName;
+}
 
 - (BOOL)okToSend {
     if (!self.connected) {
@@ -292,14 +318,12 @@ double const MeteorClientMaxRetryIncrease = 6;
     if ([msg isEqualToString:@"ready"]) {
         NSArray *subs = message[@"subs"];
         for(NSString *readySubscription in subs) {
-            for(NSString *subscriptionName in _subscriptions) {
-                NSString *curSubId = _subscriptions[subscriptionName];
+            for(NSString *subscriptionKey in _subscriptions) {
+                NSString *curSubId = _subscriptions[subscriptionKey];
+                NSString *subscriptionName = [self subscriptionNameForKey:subscriptionKey];
                 if([curSubId isEqualToString:readySubscription]) {
                     NSString *notificationName = [NSString stringWithFormat:@"%@_ready", subscriptionName];
                     [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self];
-                    
-                    NSLog(@"ready %@", notificationName);
-
                     break;
                 }
             }
@@ -404,7 +428,8 @@ double const MeteorClientMaxRetryIncrease = 6;
         NSString *uid = [BSONIdGenerator generate];
         [_subscriptions setObject:uid forKey:key];
         NSArray *params = _subscriptionsParameters[key];
-        [self.ddp subscribeWith:uid name:key parameters:params];
+        NSString *subscriptionName = [self subscriptionNameForKey:key];
+        [self.ddp subscribeWith:uid name:subscriptionName parameters:params];
     }
 }
 
