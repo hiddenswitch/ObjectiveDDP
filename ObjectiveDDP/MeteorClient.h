@@ -64,6 +64,7 @@ typedef void(^MeteorClientMethodCallback)(NSDictionary *response, NSError *error
 - (NSString*)addSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters;
 
 - (void)removeSubscription:(NSString *)subscriptionName;
+- (void)removeSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters;
 
 - (void)logout;
 - (void)disconnect;
