@@ -8,6 +8,7 @@ NSString * const MeteorClientConnectionReadyNotification = @"bounsj.objectiveddp
 NSString * const MeteorClientDidConnectNotification = @"boundsj.objectiveddp.connected";
 NSString * const MeteorClientDidDisconnectNotification = @"boundsj.objectiveddp.disconnected";
 NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.transport";
+NSString * const MeteorClientAllReconnectSubscriptionsReady = @"boundsj.objectiveddp.allreconnectsubscriptionsready";
 
 double const MeteorClientRetryIncreaseBy = 1;
 double const MeteorClientMaxRetryIncrease = 6;
@@ -279,6 +280,11 @@ double const MeteorClientMaxRetryIncrease = 6;
     [self.ddp connectWebSocket];
 }
 
+- (BOOL)hasPendingReconnectReadySubscriptions
+{
+    return [_subscriptionsWaitingForReadyOnReconnect count] > 0;
+}
+
 - (void)ping {
     if (!self.connected) {
         return;
@@ -319,9 +325,17 @@ double const MeteorClientMaxRetryIncrease = 6;
         NSArray *subs = message[@"subs"];
         for(NSString *readySubscription in subs) {
             for(NSString *subscriptionKey in _subscriptions) {
-                NSString *curSubId = _subscriptions[subscriptionKey];
+                NSString *currentSubscription = _subscriptions[subscriptionKey];
                 NSString *subscriptionName = [self subscriptionNameForKey:subscriptionKey];
-                if([curSubId isEqualToString:readySubscription]) {
+                if([currentSubscription isEqualToString:readySubscription]) {
+                    
+                    [_subscriptionsWaitingForReadyOnReconnect removeObjectForKey:subscriptionKey];
+                    
+                    if (_subscriptionsWaitingForReadyOnReconnect && _subscriptionsWaitingForReadyOnReconnect.count == 0) {
+                        [[NSNotificationCenter defaultCenter] postNotificationName:MeteorClientAllReconnectSubscriptionsReady object:self];
+                        _subscriptionsWaitingForReadyOnReconnect = nil;
+                    }
+
                     NSString *notificationName = [NSString stringWithFormat:@"%@_ready", subscriptionName];
                     [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self];
                     break;
@@ -404,12 +418,16 @@ double const MeteorClientMaxRetryIncrease = 6;
         _disconnecting = NO;
         return;
     }
-//
+    
     double timeInterval = 5.0 * _tries;
     
     if (_tries != _maxRetryIncrement) {
         _tries++;
     }
+    
+    // store the current subscriptions that need to be revived after reconnection
+    _subscriptionsWaitingForReadyOnReconnect = [_subscriptions mutableCopy];
+    
     [self performSelector:@selector(reconnect) withObject:self afterDelay:timeInterval];
 }
 

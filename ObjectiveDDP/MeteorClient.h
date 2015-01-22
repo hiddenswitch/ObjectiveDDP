@@ -5,6 +5,7 @@
 extern NSString * const MeteorClientConnectionReadyNotification;
 extern NSString * const MeteorClientDidConnectNotification;
 extern NSString * const MeteorClientDidDisconnectNotification;
+extern NSString * const MeteorClientAllReconnectSubscriptionsReady;
 
 /** Errors due to transport (connection) problems will have this domain. For errors being reported
     from the backend, they will have the "errorType" key as their error domain. */
@@ -69,6 +70,7 @@ typedef void(^MeteorClientMethodCallback)(NSDictionary *response, NSError *error
 - (void)logout;
 - (void)disconnect;
 - (void)reconnect;
+- (BOOL)hasPendingReconnectReadySubscriptions;
 - (void)ping;
 
 // Deprecated methods

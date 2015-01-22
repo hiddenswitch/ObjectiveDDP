@@ -3,6 +3,7 @@
 @interface MeteorClient () {
 @public // for tests. This header is not exported anyway.
     NSMutableDictionary *_subscriptions;
+    NSMutableDictionary *_subscriptionsWaitingForReadyOnReconnect;
     NSMutableSet *_methodIds;
     NSMutableSet *_updatedMethodIds;
     NSMutableDictionary *_responseCallbacks;
