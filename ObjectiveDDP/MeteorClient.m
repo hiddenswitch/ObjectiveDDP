@@ -270,13 +270,14 @@ double const MeteorClientMaxRetryIncrease = 6;
 }
 
 - (void)reconnect {
-    
-    NSLog(@"reconnecting");
 
-    
     if (self.ddp.webSocket.readyState == SR_OPEN) {
         return;
     }
+    
+    NSLog(@"reconnecting");
+    
+    [self.ddp disconnectWebSocket];
     [self.ddp connectWebSocket];
 }
 

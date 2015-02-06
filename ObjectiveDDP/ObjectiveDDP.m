@@ -17,7 +17,6 @@
 
 // connect to the underlying websocket
 - (void)connectWebSocket {
-    [self _closeConnection];
     [self _setupWebSocket];
     [self.webSocket open];
 }
