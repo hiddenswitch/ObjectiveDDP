@@ -6,6 +6,8 @@ extern NSString * const MeteorClientConnectionReadyNotification;
 extern NSString * const MeteorClientDidConnectNotification;
 extern NSString * const MeteorClientDidDisconnectNotification;
 extern NSString * const MeteorClientAllReconnectSubscriptionsReady;
+extern NSString * const MeteorClientHasPendingReadyNotifications;
+
 
 /** Errors due to transport (connection) problems will have this domain. For errors being reported
     from the backend, they will have the "errorType" key as their error domain. */

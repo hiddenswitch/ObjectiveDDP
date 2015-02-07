@@ -35,7 +35,7 @@
 
 @end
 
-@interface MeteorClient (Parsing)
+@interface MeteorClient (Private)
 
 - (void)_handleMethodResultMessageWithMessageId:(NSString *)messageId message:(NSDictionary *)message msg:(NSString *)msg;
 - (void)_handleAddedMessage:(NSDictionary *)message msg:(NSString *)msg;
@@ -43,5 +43,6 @@
 - (void)_handleMovedBeforeMessage:(NSDictionary *)message msg:(NSString *)msg;
 - (void)_handleRemovedMessage:(NSDictionary *)message msg:(NSString *)msg;
 - (void)_handleChangedMessage:(NSDictionary *)message msg:(NSString *)msg;
+- (void)_sendNotificationForName:(NSString *)name userInfo:(NSDictionary *)userInfo;
 
 @end

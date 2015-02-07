@@ -21,32 +21,36 @@
                 }
             }
             NSString *notificationName = [NSString stringWithFormat:@"response_%@", messageId];
-            [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self userInfo:response];
+            [self _sendNotificationForName:notificationName userInfo:message];
+            
             [_responseCallbacks removeObjectForKey:messageId];
             [_methodIds removeObject:messageId];
         }
     }
 }
 
+
 - (void)_handleAddedMessage:(NSDictionary *)message msg:(NSString *)msg {
     if ([msg isEqualToString:@"added"]
         && message[@"collection"]) {
         NSDictionary *object = [self _parseObjectAndAddToCollection:message];
         NSString *notificationName = [NSString stringWithFormat:@"%@_added", message[@"collection"]];
-        [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self userInfo:object];
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"added" object:self userInfo:object];
+        [self _sendNotificationForName:notificationName userInfo:object];
+        [self _sendNotificationForName:@"added" userInfo:object];
     }
 }
+
 
 - (void)_handleAddedBeforeMessage:(NSDictionary *)message msg:(NSString *)msg {
     if ([msg isEqualToString:@"addedBefore"]
         && message[@"collection"]) {
         NSDictionary *object = [self _parseObjectAndAddToCollection:message beforeId:[message valueForKey:@"before"]];
         NSString *notificationName = [NSString stringWithFormat:@"%@_addedBefore", message[@"collection"]];
-        [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self userInfo:object];
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"addedBefore" object:self userInfo:object];
+        [self _sendNotificationForName:notificationName userInfo:object];
+        [self _sendNotificationForName:@"addedBefore" userInfo:object];
     }
 }
+
 
 - (void)_handleMovedBeforeMessage:(NSDictionary *)message msg:(NSString *)msg {
     
@@ -54,12 +58,10 @@
         && message[@"collection"]) {
         NSDictionary *object = [self _parseMovedBefore:message];
         NSString *notificationName = [NSString stringWithFormat:@"%@_movedBefore", message[@"collection"]];
-        [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self userInfo:object];
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"movedBefore" object:self userInfo:object];
+        [self _sendNotificationForName:notificationName userInfo:object];
+        [self _sendNotificationForName:@"movedBefore" userInfo:object];
     }
 }
-
-
 
 
 - (NSDictionary *)_parseMovedBefore:(NSDictionary *)message {
@@ -116,7 +118,6 @@
 }
 
 
-
 - (NSDictionary *)_parseObjectAndAddToCollection:(NSDictionary *)message {
     NSMutableDictionary *object = [NSMutableDictionary dictionaryWithDictionary:@{@"_id": message[@"id"]}];
     for (id key in message[@"fields"]) {
@@ -129,7 +130,6 @@
     [collection addObject:object pairedWithKey:message[@"id"]];
     return object;
 }
-
 
 
 - (NSDictionary *)_parseObjectAndAddToCollection:(NSDictionary *)message beforeId:(NSString*)documentId {
@@ -155,17 +155,15 @@
 }
 
 
-
 - (void)_handleRemovedMessage:(NSDictionary *)message msg:(NSString *)msg {
     if ([msg isEqualToString:@"removed"]
         && message[@"collection"]) {
         [self _parseRemoved:message];
         NSString *notificationName = [NSString stringWithFormat:@"%@_removed", message[@"collection"]];
-        [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self userInfo:@{@"_id": message[@"id"]}];
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"removed" object:self];
+        [self _sendNotificationForName:notificationName userInfo:@{@"_id": message[@"id"]}];
+        [self _sendNotificationForName:@"removed" userInfo:@{@"_id": message[@"id"]}];
     }
 }
-
 
 
 - (void)_parseRemoved:(NSDictionary *)message {
@@ -176,17 +174,16 @@
 }
 
 
-
 - (void)_handleChangedMessage:(NSDictionary *)message msg:(NSString *)msg {
     if ([msg isEqualToString:@"changed"]
         && message[@"collection"]) {
         NSDictionary *object = [self _parseObjectAndUpdateCollection:message];
         NSString *notificationName = [NSString stringWithFormat:@"%@_changed", message[@"collection"]];
-        [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self userInfo:object];
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"changed" object:self userInfo:object];
+        
+        [self _sendNotificationForName:notificationName userInfo:object];
+        [self _sendNotificationForName:@"changed" userInfo:object];
     }
 }
-
 
 
 - (NSDictionary *)_parseObjectAndUpdateCollection:(NSDictionary *)message {
@@ -199,6 +196,18 @@
         [object removeObjectForKey:key];
     }
     return object;
+}
+
+
+- (void)_sendNotificationForName:(NSString *)name userInfo:(NSDictionary *)userInfo
+{
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithDictionary:userInfo];
+        
+    // append hasPendingReadyNotifications
+    [dict setValue:@([self hasPendingReconnectReadySubscriptions]) forKey:MeteorClientHasPendingReadyNotifications];
+    
+    // post notification
+    [[NSNotificationCenter defaultCenter] postNotificationName:name object:self userInfo:dict];
 }
 
 @end

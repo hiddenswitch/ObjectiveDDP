@@ -9,6 +9,7 @@ NSString * const MeteorClientDidConnectNotification = @"boundsj.objectiveddp.con
 NSString * const MeteorClientDidDisconnectNotification = @"boundsj.objectiveddp.disconnected";
 NSString * const MeteorClientTransportErrorDomain = @"boundsj.objectiveddp.transport";
 NSString * const MeteorClientAllReconnectSubscriptionsReady = @"boundsj.objectiveddp.allreconnectsubscriptionsready";
+NSString * const MeteorClientHasPendingReadyNotifications = @"boundsj.objectiveddp.haspendingreadynotifications";
 
 double const MeteorClientRetryIncreaseBy = 1;
 double const MeteorClientMaxRetryIncrease = 6;
@@ -338,7 +339,7 @@ double const MeteorClientMaxRetryIncrease = 6;
                     }
 
                     NSString *notificationName = [NSString stringWithFormat:@"%@_ready", subscriptionName];
-                    [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self];
+                    [self _sendNotificationForName:notificationName userInfo:message];
                     break;
                 }
             }
@@ -351,7 +352,7 @@ double const MeteorClientMaxRetryIncrease = 6;
             for(NSString *methodId in _updatedMethodIds) {
                 if([methodId isEqualToString:updateMethod]) {
                     NSString *notificationName = [NSString stringWithFormat:@"%@_update", methodId];
-                    [[NSNotificationCenter defaultCenter] postNotificationName:notificationName object:self];
+                    [self _sendNotificationForName:notificationName userInfo:message];
                     [_updatedMethodIds removeObject:methodId];
                     break;
                 }
