@@ -81,13 +81,17 @@ double const MeteorClientMaxRetryIncrease = 6;
 }
 
 - (NSString*)addSubscription:(NSString *)subscriptionName withParameters:(NSArray *)parameters {
-    NSString *uid = [BSONIdGenerator generate];
     
     NSString *key = subscriptionName;
     if (parameters) {
         key = [NSString stringWithFormat:@"%@_%@", subscriptionName, [parameters componentsJoinedByString:@","]];
     }
     
+    if ([_subscriptions objectForKey:key]) {
+        return nil;
+    }
+    
+    NSString *uid = [BSONIdGenerator generate];
     [_subscriptions setObject:uid forKey:key];
     if (parameters) {
         [_subscriptionsParameters setObject:parameters forKey:key];
